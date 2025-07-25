@@ -1,0 +1,948 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAP Analytics Cloud - Revenue Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f6fa;
+            color: #2c3e50;
+            min-height: 100vh;
+        }
+
+        /* SAP SAC Header */
+        .sac-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .sap-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+            .sap-logo .logo-icon {
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #0070f3, #00d4ff);
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+            }
+
+            .sap-logo .logo-text {
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: #2c3e50;
+            }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: #ffffff;
+            border: 1px solid #d1d9e0;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+            .action-btn:hover {
+                background: #f8f9fa;
+                border-color: #0070f3;
+            }
+
+            .action-btn.primary {
+                background: #0070f3;
+                color: white;
+                border-color: #0070f3;
+            }
+
+                .action-btn.primary:hover {
+                    background: #0060d3;
+                }
+
+        /* Navigation Bar */
+        .nav-bar {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 0.5rem 1.5rem;
+        }
+
+        .nav-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-item {
+            padding: 0.5rem 0;
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 0.9rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+            .nav-item:hover,
+            .nav-item.active {
+                color: #0070f3;
+                border-bottom-color: #0070f3;
+            }
+
+        /* Dashboard Container */
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        /* Filters Section */
+        .filters-section {
+            background: #ffffff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-control {
+            border: 1px solid #d1d9e0;
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            background: #ffffff;
+            min-width: 120px;
+        }
+
+            .filter-control:focus {
+                outline: none;
+                border-color: #0070f3;
+                box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.1);
+            }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+
+        .kpi-card {
+            background: #ffffff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1.5rem;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+            .kpi-card:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                transform: translateY(-2px);
+            }
+
+            .kpi-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #0070f3, #00d4ff);
+                border-radius: 8px 8px 0 0;
+            }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .kpi-title {
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-icon {
+            width: 24px;
+            height: 24px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .kpi-change {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+            .kpi-change.positive {
+                color: #28a745;
+            }
+
+            .kpi-change.negative {
+                color: #dc3545;
+            }
+
+        .kpi-change-arrow {
+            font-size: 0.7rem;
+        }
+
+        /* Chart Containers */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .chart-container {
+            background: #ffffff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-action {
+            background: none;
+            border: none;
+            padding: 0.25rem;
+            cursor: pointer;
+            color: #6c757d;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+            .chart-action:hover {
+                background: #f8f9fa;
+                color: #2c3e50;
+            }
+
+        /* Data Table */
+        .data-table-container {
+            background: #ffffff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f3f4;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .data-table th {
+                background: #f8f9fa;
+                padding: 0.75rem;
+                text-align: left;
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border-bottom: 1px solid #e1e5e9;
+            }
+
+            .data-table td {
+                padding: 1rem 0.75rem;
+                border-bottom: 1px solid #f1f3f4;
+                font-size: 0.85rem;
+            }
+
+            .data-table tbody tr:hover {
+                background: #f8f9fa;
+            }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-completed {
+            background: #28a745;
+        }
+
+        .status-pending {
+            background: #ffc107;
+        }
+
+        .status-cancelled {
+            background: #dc3545;
+        }
+
+        /* Drill-down Modal */
+        .drill-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .drill-modal-content {
+            background: #ffffff;
+            width: 80%;
+            max-width: 900px;
+            margin: 5% auto;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .drill-modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .drill-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6c757d;
+            margin-left: auto;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .dashboard-container {
+                padding: 1rem;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0070f3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- SAC Header -->
+    <div class="sac-header">
+        <div class="header-content">
+            <div class="sap-logo">
+                <div class="logo-icon">SAC</div>
+                <div class="logo-text">SAP Analytics Cloud</div>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn">📊 Stories</button>
+                <button class="action-btn">📈 Models</button>
+                <button class="action-btn">⚙️ Settings</button>
+                <button class="action-btn primary">💾 Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-bar">
+        <div class="nav-content">
+            <a href="#" class="nav-item active">Revenue Dashboard</a>
+            <a href="#" class="nav-item">Sales Analysis</a>
+            <a href="#" class="nav-item">Product Performance</a>
+            <a href="#" class="nav-item">Regional Analytics</a>
+            <a href="#" class="nav-item">Forecasting</a>
+        </div>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <div class="filter-label">Time Period</div>
+                <select class="filter-control" id="timePeriodFilter">
+                    <option value="MTD">Month to Date</option>
+                    <option value="QTD">Quarter to Date</option>
+                    <option value="YTD" selected>Year to Date</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <div class="filter-label">Product Line</div>
+                <select class="filter-control" id="productFilter">
+                    <option value="all">All Products</option>
+                    <option value="games">Games</option>
+                    <option value="merchandise">Merchandise</option>
+                    <option value="licensing">Licensing</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <div class="filter-label">Region</div>
+                <select class="filter-control" id="regionFilter">
+                    <option value="all">Global</option>
+                    <option value="NA">North America</option>
+                    <option value="EU">Europe</option>
+                    <option value="APAC">Asia Pacific</option>
+                    <option value="SA">South Africa</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <div class="filter-label">Currency</div>
+                <select class="filter-control" id="currencyFilter">
+                    <option value="USD">USD ($)</option>
+                    <option value="ZAR">ZAR (R)</option>
+                    <option value="EUR">EUR (€)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card" onclick="drillDown('revenue')">
+                <div class="kpi-header">
+                    <div class="kpi-title">Total Revenue</div>
+                    <div class="kpi-icon">💰</div>
+                </div>
+                <div class="kpi-value" id="totalRevenue">$0</div>
+                <div class="kpi-change positive" id="revenueChange">
+                    <span class="kpi-change-arrow">↗</span>
+                    <span>+0% vs last period</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" onclick="drillDown('recurring')">
+                <div class="kpi-header">
+                    <div class="kpi-title">Recurring Revenue (MRR)</div>
+                    <div class="kpi-icon">🔄</div>
+                </div>
+                <div class="kpi-value" id="recurringRevenue">$0</div>
+                <div class="kpi-change positive" id="mrrChange">
+                    <span class="kpi-change-arrow">↗</span>
+                    <span>+0% vs last month</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" onclick="drillDown('arpu')">
+                <div class="kpi-header">
+                    <div class="kpi-title">Avg Revenue Per User</div>
+                    <div class="kpi-icon">👤</div>
+                </div>
+                <div class="kpi-value" id="arpu">$0</div>
+                <div class="kpi-change positive" id="arpuChange">
+                    <span class="kpi-change-arrow">↗</span>
+                    <span>+0% vs last period</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" onclick="drillDown('forecast')">
+                <div class="kpi-header">
+                    <div class="kpi-title">Revenue Forecast</div>
+                    <div class="kpi-icon">🎯</div>
+                </div>
+                <div class="kpi-value" id="revenueForecast">$0</div>
+                <div class="kpi-change positive" id="forecastVariance">
+                    <span class="kpi-change-arrow">↗</span>
+                    <span>+0% vs target</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- Revenue Trend Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">Revenue Trend Analysis</div>
+                    <div class="chart-actions">
+                        <button class="chart-action" onclick="exportChart('revenue')" title="Export">📊</button>
+                        <button class="chart-action" onclick="fullscreenChart('revenue')" title="Fullscreen">⛶</button>
+                        <button class="chart-action" onclick="configureChart('revenue')" title="Configure">⚙️</button>
+                    </div>
+                </div>
+                <canvas id="revenueChart" style="max-height: 300px;"></canvas>
+            </div>
+
+            <!-- Revenue Breakdown -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">Revenue by Product</div>
+                    <div class="chart-actions">
+                        <button class="chart-action" onclick="exportChart('breakdown')" title="Export">📊</button>
+                        <button class="chart-action" onclick="fullscreenChart('breakdown')" title="Fullscreen">⛶</button>
+                    </div>
+                </div>
+                <canvas id="breakdownChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="data-table-container">
+            <div class="table-header">
+                <div class="chart-title">Revenue Transactions</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="action-btn" onclick="exportTable()">Export</button>
+                    <button class="action-btn" onclick="refreshData()">Refresh</button>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction ID</th>
+                        <th>Product</th>
+                        <th>Customer</th>
+                        <th>Revenue</th>
+                        <th>Region</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionTableBody">
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Drill-down Modal -->
+    <div id="drillModal" class="drill-modal">
+        <div class="drill-modal-content">
+            <div class="drill-modal-header">
+                <h3 id="drillModalTitle">Detailed Analysis</h3>
+                <button class="drill-modal-close" onclick="closeDrillModal()">&times;</button>
+            </div>
+            <div id="drillModalContent" style="padding: 1.5rem;">
+                <!-- Drill-down content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample revenue data
+        const revenueData = {
+            transactions: [
+                { date: '2025-01-24', id: 'TXN-001', product: 'Zizi\'s Quest', customer: 'Steam Platform', revenue: 2950.00, region: 'Global', status: 'completed' },
+                { date: '2025-01-23', id: 'TXN-002', product: 'Anele', customer: 'Epic Games Store', revenue: 1875.50, region: 'NA', status: 'completed' },
+                { date: '2025-01-22', id: 'TXN-003', product: 'Licensing Deal', customer: 'Education Corp', revenue: 15000.00, region: 'EU', status: 'completed' },
+                { date: '2025-01-21', id: 'TXN-004', product: 'Merchandise', customer: 'Direct Sales', revenue: 450.75, region: 'SA', status: 'pending' },
+                { date: '2025-01-20', id: 'TXN-005', product: 'Zizi\'s Quest', customer: 'PlayStation Store', revenue: 3200.00, region: 'Global', status: 'completed' },
+                { date: '2025-01-19', id: 'TXN-006', product: 'Subscription', customer: 'ZAINLITHA Plus', revenue: 99.99, region: 'SA', status: 'completed' }
+            ],
+            monthlyTrend: [
+                { month: 'Oct', actual: 18500, forecast: 17000, target: 20000 },
+                { month: 'Nov', actual: 22300, forecast: 21000, target: 23000 },
+                { month: 'Dec', actual: 28700, forecast: 26500, target: 25000 },
+                { month: 'Jan', actual: 23475.24, forecast: 28000, target: 30000 }
+            ]
+        };
+
+        let revenueChart, breakdownChart;
+
+        // Initialize dashboard
+        function initDashboard() {
+            updateKPIs();
+            createCharts();
+            populateTransactionTable();
+            setDefaultFilters();
+        }
+
+        function updateKPIs() {
+            const completedTransactions = revenueData.transactions.filter(t => t.status === 'completed');
+            const totalRevenue = completedTransactions.reduce((sum, t) => sum + t.revenue, 0);
+            const avgRevenue = totalRevenue / completedTransactions.length || 0;
+            const recurringRevenue = revenueData.transactions.filter(t => t.product === 'Subscription').reduce((sum, t) => sum + t.revenue, 0);
+
+            document.getElementById('totalRevenue').textContent = `$${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            document.getElementById('recurringRevenue').textContent = `$${recurringRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            document.getElementById('arpu').textContent = `$${avgRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            document.getElementById('revenueForecast').textContent = `$${(28000).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+            // Update change indicators
+            document.getElementById('revenueChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+15.2% vs last period</span>';
+            document.getElementById('mrrChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+8.7% vs last month</span>';
+            document.getElementById('arpuChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+12.1% vs last period</span>';
+            document.getElementById('forecastVariance').innerHTML = '<span class="kpi-change-arrow">↘</span><span>-6.7% vs target</span>';
+        }
+
+        function createCharts() {
+            // Revenue Trend Chart
+            const ctx1 = document.getElementById('revenueChart').getContext('2d');
+            revenueChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: revenueData.monthlyTrend.map(d => d.month),
+                    datasets: [
+                        {
+                            label: 'Actual Revenue',
+                            data: revenueData.monthlyTrend.map(d => d.actual),
+                            borderColor: '#0070f3',
+                            backgroundColor: 'rgba(0, 112, 243, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Forecast',
+                            data: revenueData.monthlyTrend.map(d => d.forecast),
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Target',
+                            data: revenueData.monthlyTrend.map(d => d.target),
+                            borderColor: '#28a745',
+                            backgroundColor: 'transparent',
+                            borderDash: [10, 5],
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, padding: 20 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            // Revenue Breakdown Chart
+            const ctx2 = document.getElementById('breakdownChart').getContext('2d');
+            const productRevenue = {};
+            revenueData.transactions.forEach(t => {
+                if (t.status === 'completed') {
+                    productRevenue[t.product] = (productRevenue[t.product] || 0) + t.revenue;
+                }
+            });
+
+            breakdownChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(productRevenue),
+                    datasets: [{
+                        data: Object.values(productRevenue),
+                        backgroundColor: ['#0070f3', '#00d4ff', '#28a745', '#ffc107', '#dc3545'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, padding: 15 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function populateTransactionTable() {
+            const tbody = document.getElementById('transactionTableBody');
+            tbody.innerHTML = '';
+
+            revenueData.transactions.forEach(transaction => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${new Date(transaction.date).toLocaleDateString()}</td>
+                    <td style="font-family: monospace; font-size: 0.8rem;">${transaction.id}</td>
+                    <td>${transaction.product}</td>
+                    <td>${transaction.customer}</td>
+                    <td style="font-weight: 600;">$${transaction.revenue.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td>${transaction.region}</td>
+                    <td>
+                        <span class="status-indicator status-${transaction.status}"></span>
+                        ${transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                    </td>
+                `;
+                row.style.cursor = 'pointer';
+                row.onclick = () => drillDown('transaction', transaction);
+            });
+        }
+
+        function setDefaultFilters() {
+            // Set default filter values
+            document.getElementById('timePeriodFilter').value = 'YTD';
+            document.getElementById('productFilter').value = 'all';
+            document.getElementById('regionFilter').value = 'all';
+            document.getElementById('currencyFilter').value = 'USD';
+        }
+
+        // Drill-down functionality
+        function drillDown(type, data = null) {
+            const modal = document.getElementById('drillModal');
+            const title = document.getElementById('drillModalTitle');
+            const content = document.getElementById('drillModalContent');
+
+            switch(type) {
+                case 'revenue':
+                    title.textContent = 'Total Revenue Analysis';
+                    content.innerHTML = `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                            <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #0070f3;">$23,475.24</div>
+                                <div style="color: #6c757d; font-size: 0.9rem;">This Month</div>
+                            </div>
+                            <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">$69,500.00</div>
+                                <div style="color: #6c757d; font-size: 0.9rem;">Last 3 Months</div>
+                            </div>
+                        </div>
+                        <canvas id="drillRevenueChart" style="max-height: 300px;"></canvas>
+                    `;
+                    break;
+                case 'transaction':
+                    title.textContent = `Transaction Details - ${data.id}`;
+                    content.innerHTML = `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <div><strong>Date:</strong> ${new Date(data.date).toLocaleDateString()}</div>
+                            <div><strong>Product:</strong> ${data.product}</div>
+                            <div><strong>Customer:</strong> ${data.customer}</div>
+                            <div><strong>Amount:</strong> $${data.revenue.toLocaleString()}</div>
+                            <div><strong>Region:</strong> ${data.region}</div>
+                            <div><strong>Status:</strong> ${data.status}</div>
+                        </div>
+                        <div style="margin-top: 2rem;">
+                            <h4>Transaction Timeline</h4>
+                            <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+                                <div style="margin-bottom: 0.5rem;">✓ Transaction initiated</div>
+                                <div style="margin-bottom: 0.5rem;">✓ Payment processed</div>
+                                <div style="margin-bottom: 0.5rem;">✓ Revenue recorded</div>
+                                <div>✓ Transaction completed</div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                default:
+                    title.textContent = 'Analysis Details';
+                    content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading detailed analysis...</div>';
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeDrillModal() {
+            document.getElementById('drillModal').style.display = 'none';
+        }
+
+        // Export functions
+        function exportChart(chartType) {
+            alert(`Exporting ${chartType} chart data. In production, this would generate a downloadable file.`);
+        }
+
+        function exportTable() {
+            const csv = [
+                ['Date', 'Transaction ID', 'Product', 'Customer', 'Revenue', 'Region', 'Status'],
+                ...revenueData.transactions.map(t => [
+                    t.date, t.id, t.product, t.customer, t.revenue, t.region, t.status
+                ])
+            ].map(row => row.join(',')).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'revenue_transactions.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function refreshData() {
+            // Simulate data refresh
+            document.querySelectorAll('.kpi-value').forEach(el => {
+                el.style.opacity = '0.5';
+            });
+
+            setTimeout(() => {
+                document.querySelectorAll('.kpi-value').forEach(el => {
+                    el.style.opacity = '1';
+                });
+                alert('Data refreshed successfully!');
+            }, 1500);
+        }
+
+        // Filter change handlers
+        document.getElementById('timePeriodFilter').addEventListener('change', function() {
+            console.log('Time period changed to:', this.value);
+            // In production, this would trigger data refresh
+        });
+
+        document.getElementById('productFilter').addEventListener('change', function() {
+            console.log('Product filter changed to:', this.value);
+            // Filter data and update charts/tables
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(e) {
+            const modal = document.getElementById('drillModal');
+            if (e.target === modal) {
+                closeDrillModal();
+            }
+        });
+
+        // Initialize dashboard
+        initDashboard();
+
+        // Auto-refresh simulation
+        setInterval(() => {
+            console.log('Auto-refreshing revenue data...');
+            // In production, this would fetch new data from SAP systems
+        }, 60000);
+    </script>
+</body>
+</html>
