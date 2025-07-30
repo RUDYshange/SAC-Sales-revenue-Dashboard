@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SAP Analytics Cloud - Revenue Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -91,6 +92,16 @@
                     background: #0060d3;
                 }
 
+            .action-btn.upload {
+                background: #28a745;
+                color: white;
+                border-color: #28a745;
+            }
+
+                .action-btn.upload:hover {
+                    background: #218838;
+                }
+
         /* Navigation Bar */
         .nav-bar {
             background: #ffffff;
@@ -127,6 +138,419 @@
             padding: 1.5rem;
             display: grid;
             gap: 1.5rem;
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .settings-modal-content {
+            background: #ffffff;
+            width: 90%;
+            max-width: 800px;
+            margin: 3% auto;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .settings-modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .settings-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+        .settings-tabs {
+            display: flex;
+            border-bottom: 1px solid #e1e5e9;
+            background: #f8f9fa;
+        }
+
+        .settings-tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .settings-tab:hover,
+        .settings-tab.active {
+            color: #0070f3;
+            border-bottom-color: #0070f3;
+            background: #ffffff;
+        }
+
+        .settings-content {
+            padding: 2rem;
+        }
+
+        .settings-section {
+            display: none;
+        }
+
+        .settings-section.active {
+            display: block;
+        }
+
+        .settings-group {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .settings-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .settings-group-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .settings-group-description {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+        }
+
+        .settings-item:hover {
+            background: #f8f9fa;
+        }
+
+        .settings-item-info {
+            flex: 1;
+        }
+
+        .settings-item-title {
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+        }
+
+        .settings-item-description {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .settings-item-control {
+            margin-left: 1rem;
+        }
+
+        .settings-toggle {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #d1d9e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .settings-toggle.active {
+            background: #0070f3;
+        }
+
+        .settings-toggle::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .settings-toggle.active::before {
+            transform: translateX(26px);
+        }
+
+        .settings-select,
+        .settings-input {
+            padding: 0.5rem;
+            border: 1px solid #d1d9e0;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            min-width: 150px;
+        }
+
+        .settings-select:focus,
+        .settings-input:focus {
+            outline: none;
+            border-color: #0070f3;
+            box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.1);
+        }
+
+        .settings-color-picker {
+            width: 50px;
+            height: 30px;
+            border: 1px solid #d1d9e0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .settings-actions {
+            padding: 1.5rem;
+            border-top: 1px solid #e1e5e9;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-reset {
+            color: #dc3545;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .settings-reset:hover {
+            text-decoration: underline;
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .connection-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .connection-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .connection-indicator.connected {
+            background: #28a745;
+        }
+
+        .connection-indicator.disconnected {
+            background: #dc3545;
+        }
+        .upload-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .upload-modal-content {
+            background: #ffffff;
+            width: 90%;
+            max-width: 600px;
+            margin: 5% auto;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .upload-modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .upload-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+        .upload-modal-body {
+            padding: 2rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d9e0;
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: #0070f3;
+            background: rgba(0, 112, 243, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-progress {
+            display: none;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f1f3f4;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #0070f3;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .data-preview {
+            display: none;
+            margin-top: 1.5rem;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow-y: auto;
+            display: block;
+        }
+
+        .preview-table thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 0.5rem;
+            border: 1px solid #e1e5e9;
+            text-align: left;
+        }
+
+        .upload-actions {
+            display: none;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e1e5e9;
+            text-align: right;
+        }
+
+        .upload-actions button {
+            margin-left: 0.5rem;
+        }
+
+        .field-mapping {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .mapping-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .mapping-select {
+            padding: 0.25rem;
+            border: 1px solid #d1d9e0;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        /* Success Message */
+        .success-message {
+            display: none;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
         }
 
         /* Filters Section */
@@ -318,7 +742,7 @@
             padding: 1.5rem;
             border-bottom: 1px solid #f1f3f4;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
         }
 
@@ -396,7 +820,7 @@
             padding: 1.5rem;
             border-bottom: 1px solid #e1e5e9;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
         }
 
@@ -472,7 +896,8 @@
             <div class="header-actions">
                 <button class="action-btn">📊 Stories</button>
                 <button class="action-btn">📈 Models</button>
-                <button class="action-btn">⚙️ Settings</button>
+                <button class="action-btn upload" onclick="openUploadModal()">📂 Upload Data</button>
+                <button class="action-btn" onclick="openSettingsModal()">⚙️ Settings</button>
                 <button class="action-btn primary">💾 Save</button>
             </div>
         </div>
@@ -490,6 +915,11 @@
     </div>
 
     <div class="dashboard-container">
+        <!-- Success Message -->
+        <div id="successMessage" class="success-message">
+            <strong>Success!</strong> Your data has been uploaded and the dashboard has been updated.
+        </div>
+
         <!-- Filters Section -->
         <div class="filters-section">
             <div class="filter-group">
@@ -637,6 +1067,572 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="settings-modal">
+        <div class="settings-modal-content">
+            <div class="settings-modal-header">
+                <h3>Dashboard Settings</h3>
+                <button class="settings-modal-close" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            
+            <div class="settings-tabs">
+                <button class="settings-tab active" onclick="switchSettingsTab('general')">General</button>
+                <button class="settings-tab" onclick="switchSettingsTab('data')">Data Sources</button>
+                <button class="settings-tab" onclick="switchSettingsTab('display')">Display</button>
+                <button class="settings-tab" onclick="switchSettingsTab('notifications')">Notifications</button>
+                <button class="settings-tab" onclick="switchSettingsTab('security')">Security</button>
+            </div>
+
+            <div class="settings-content">
+                <!-- General Settings -->
+                <div id="generalSettings" class="settings-section active">
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            🌐 Regional Settings
+                        </div>
+                        <div class="settings-group-description">
+                            Configure your default timezone, currency, and regional preferences.
+                        </div>
+                        
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Default Currency</div>
+                                <div class="settings-item-description">Primary currency for revenue calculations</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="defaultCurrency">
+                                    <option value="USD">USD ($)</option>
+                                    <option value="ZAR" selected>ZAR (R)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Timezone</div>
+                                <div class="settings-item-description">Default timezone for data and reports</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="timezone">
+                                    <option value="UTC">UTC</option>
+                                    <option value="Africa/Johannesburg" selected>Africa/Johannesburg</option>
+                                    <option value="America/New_York">America/New_York</option>
+                                    <option value="Europe/London">Europe/London</option>
+                                    <option value="Asia/Tokyo">Asia/Tokyo</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Date Format</div>
+                                <div class="settings-item-description">How dates are displayed throughout the dashboard</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="dateFormat">
+                                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                    <option value="DD/MM/YYYY" selected>DD/MM/YYYY</option>
+                                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            📊 Dashboard Behavior
+                        </div>
+                        <div class="settings-group-description">
+                            Control how the dashboard behaves and updates.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Auto-refresh Data</div>
+                                <div class="settings-item-description">Automatically refresh dashboard data every 5 minutes</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'autoRefresh')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Real-time Updates</div>
+                                <div class="settings-item-description">Show live updates as new data arrives</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle" onclick="toggleSetting(this, 'realTimeUpdates')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Compact View</div>
+                                <div class="settings-item-description">Use smaller cards and charts to fit more data</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle" onclick="toggleSetting(this, 'compactView')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Sources Settings -->
+                <div id="dataSettings" class="settings-section">
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            🔗 SAP Connections
+                        </div>
+                        <div class="settings-group-description">
+                            Manage connections to your SAP systems and data sources.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">SAP S/4HANA</div>
+                                <div class="settings-item-description">Primary ERP system for financial data</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="connection-status connected">
+                                    <div class="connection-indicator connected"></div>
+                                    Connected
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">SAP SuccessFactors</div>
+                                <div class="settings-item-description">HR and employee data integration</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="connection-status disconnected">
+                                    <div class="connection-indicator disconnected"></div>
+                                    Disconnected
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">SAP Concur</div>
+                                <div class="settings-item-description">Expense and travel data</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="connection-status connected">
+                                    <div class="connection-indicator connected"></div>
+                                    Connected
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            📂 Data Import Settings
+                        </div>
+                        <div class="settings-group-description">
+                            Configure how uploaded data is processed and validated.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Auto-detect Field Mapping</div>
+                                <div class="settings-item-description">Automatically map CSV columns to dashboard fields</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'autoFieldMapping')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Data Validation</div>
+                                <div class="settings-item-description">Validate imported data for errors and inconsistencies</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'dataValidation')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Backup Original Data</div>
+                                <div class="settings-item-description">Keep backup of data before importing new files</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'backupData')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Display Settings -->
+                <div id="displaySettings" class="settings-section">
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            🎨 Theme & Appearance
+                        </div>
+                        <div class="settings-group-description">
+                            Customize the visual appearance of your dashboard.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Theme Mode</div>
+                                <div class="settings-item-description">Choose between light and dark themes</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="themeMode">
+                                    <option value="light" selected>Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="auto">Auto (System)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Primary Color</div>
+                                <div class="settings-item-description">Main accent color for charts and highlights</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <input type="color" class="settings-color-picker" id="primaryColor" value="#0070f3">
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Chart Animations</div>
+                                <div class="settings-item-description">Enable smooth animations for charts and transitions</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'chartAnimations')"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            📈 Chart Settings
+                        </div>
+                        <div class="settings-group-description">
+                            Configure how charts are displayed and behave.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Default Chart Type</div>
+                                <div class="settings-item-description">Preferred chart type for new visualizations</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="defaultChartType">
+                                    <option value="line" selected>Line Chart</option>
+                                    <option value="bar">Bar Chart</option>
+                                    <option value="area">Area Chart</option>
+                                    <option value="pie">Pie Chart</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Show Data Labels</div>
+                                <div class="settings-item-description">Display values directly on chart elements</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle" onclick="toggleSetting(this, 'showDataLabels')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Chart Export Format</div>
+                                <div class="settings-item-description">Default format when exporting charts</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="exportFormat">
+                                    <option value="png" selected>PNG</option>
+                                    <option value="jpg">JPEG</option>
+                                    <option value="svg">SVG</option>
+                                    <option value="pdf">PDF</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Settings -->
+                <div id="notificationsSettings" class="settings-section">
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            🔔 Alert Preferences
+                        </div>
+                        <div class="settings-group-description">
+                            Configure when and how you want to be notified about important changes.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Revenue Threshold Alerts</div>
+                                <div class="settings-item-description">Get notified when revenue exceeds or falls below targets</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'revenueAlerts')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">High Revenue Threshold</div>
+                                <div class="settings-item-description">Alert when single transaction exceeds this amount</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <input type="number" class="settings-input" id="highRevenueThreshold" value="10000" placeholder="10000">
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Data Import Notifications</div>
+                                <div class="settings-item-description">Notify when new data is successfully imported</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'importNotifications')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">System Maintenance Alerts</div>
+                                <div class="settings-item-description">Receive notifications about scheduled maintenance</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'maintenanceAlerts')"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            📧 Email Settings
+                        </div>
+                        <div class="settings-group-description">
+                            Configure email notifications and reports.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Email Address</div>
+                                <div class="settings-item-description">Primary email for notifications and reports</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <input type="email" class="settings-input" id="emailAddress" value="user@zainlitha.com" placeholder="user@example.com">
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Daily Revenue Report</div>
+                                <div class="settings-item-description">Receive daily summary of revenue performance</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle" onclick="toggleSetting(this, 'dailyReport')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Weekly Analytics Report</div>
+                                <div class="settings-item-description">Comprehensive weekly analytics and insights</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'weeklyReport')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Settings -->
+                <div id="securitySettings" class="settings-section">
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            🔐 Access Control
+                        </div>
+                        <div class="settings-group-description">
+                            Manage security settings and access permissions.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Two-Factor Authentication</div>
+                                <div class="settings-item-description">Add extra security with 2FA verification</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'twoFactorAuth')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Session Timeout</div>
+                                <div class="settings-item-description">Auto-logout after period of inactivity</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="sessionTimeout">
+                                    <option value="30">30 minutes</option>
+                                    <option value="60" selected>1 hour</option>
+                                    <option value="240">4 hours</option>
+                                    <option value="480">8 hours</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Data Export Restrictions</div>
+                                <div class="settings-item-description">Require approval for data exports</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle" onclick="toggleSetting(this, 'exportRestrictions')"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-group-title">
+                            📊 Data Privacy
+                        </div>
+                        <div class="settings-group-description">
+                            Control how your data is processed and stored.
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Anonymous Analytics</div>
+                                <div class="settings-item-description">Share usage data to improve the platform</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'anonymousAnalytics')"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Data Retention Period</div>
+                                <div class="settings-item-description">How long to keep transaction data</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="dataRetention">
+                                    <option value="12">12 months</option>
+                                    <option value="24" selected>24 months</option>
+                                    <option value="36">36 months</option>
+                                    <option value="60">5 years</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-title">Audit Logging</div>
+                                <div class="settings-item-description">Track all user actions and data changes</div>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="settings-toggle active" onclick="toggleSetting(this, 'auditLogging')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <a href="#" class="settings-reset" onclick="resetAllSettings()">Reset to Defaults</a>
+                <div>
+                    <button class="action-btn" onclick="closeSettingsModal()">Cancel</button>
+                    <button class="action-btn primary" onclick="saveSettings()">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="upload-modal">
+        <div class="upload-modal-content">
+            <div class="upload-modal-header">
+                <h3>Upload Revenue Data</h3>
+                <button class="upload-modal-close" onclick="closeUploadModal()">&times;</button>
+            </div>
+            <div class="upload-modal-body">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📂</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-subtext">CSV files only. Expected columns: date, id, product, customer, revenue, region, status</div>
+                </div>
+                
+                <input type="file" id="fileInput" class="file-input" accept=".csv" onchange="handleFileSelect(event)">
+                
+                <div id="uploadProgress" class="upload-progress">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div style="text-align: center; margin-top: 0.5rem; font-size: 0.85rem; color: #6c757d;">
+                        Processing file...
+                    </div>
+                </div>
+
+                <div id="fieldMapping" class="field-mapping">
+                    <h4 style="margin-bottom: 1rem;">Map Your Data Fields</h4>
+                    <div class="mapping-row">
+                        <span>Date Column:</span>
+                        <select id="dateMapping" class="mapping-select"></select>
+                    </div>
+                    <div class="mapping-row">
+                        <span>Transaction ID:</span>
+                        <select id="idMapping" class="mapping-select"></select>
+                    </div>
+                    <div class="mapping-row">
+                        <span>Product:</span>
+                        <select id="productMapping" class="mapping-select"></select>
+                    </div>
+                    <div class="mapping-row">
+                        <span>Customer:</span>
+                        <select id="customerMapping" class="mapping-select"></select>
+                    </div>
+                    <div class="mapping-row">
+                        <span>Revenue:</span>
+                        <select id="revenueMapping" class="mapping-select"></select>
+                    </div>
+                    <div class="mapping-row">
+                        <span>Region:</span>
+                        <select id="regionMapping" class="mapping-select"></select>
+                    </div>
+                    <div class="mapping-row">
+                        <span>Status:</span>
+                        <select id="statusMapping" class="mapping-select"></select>
+                    </div>
+                </div>
+
+                <div id="dataPreview" class="data-preview">
+                    <h4 style="margin-bottom: 1rem;">Data Preview</h4>
+                    <div style="overflow-x: auto; max-height: 200px;">
+                        <table id="previewTable" class="preview-table">
+                            <thead id="previewHeader"></thead>
+                            <tbody id="previewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="uploadActions" class="upload-actions">
+                    <button class="action-btn" onclick="closeUploadModal()">Cancel</button>
+                    <button class="action-btn primary" onclick="processUploadedData()">Import Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Drill-down Modal -->
     <div id="drillModal" class="drill-modal">
         <div class="drill-modal-content">
@@ -651,25 +1647,45 @@
     </div>
 
     <script>
-        // Sample revenue data
-        const revenueData = {
+        // Updated revenue data (after CSV upload simulation)
+        let revenueData = {
             transactions: [
-                { date: '2025-01-24', id: 'TXN-001', product: 'Zizi\'s Quest', customer: 'Steam Platform', revenue: 2950.00, region: 'Global', status: 'completed' },
-                { date: '2025-01-23', id: 'TXN-002', product: 'Anele', customer: 'Epic Games Store', revenue: 1875.50, region: 'NA', status: 'completed' },
-                { date: '2025-01-22', id: 'TXN-003', product: 'Licensing Deal', customer: 'Education Corp', revenue: 15000.00, region: 'EU', status: 'completed' },
-                { date: '2025-01-21', id: 'TXN-004', product: 'Merchandise', customer: 'Direct Sales', revenue: 450.75, region: 'SA', status: 'pending' },
-                { date: '2025-01-20', id: 'TXN-005', product: 'Zizi\'s Quest', customer: 'PlayStation Store', revenue: 3200.00, region: 'Global', status: 'completed' },
-                { date: '2025-01-19', id: 'TXN-006', product: 'Subscription', customer: 'ZAINLITHA Plus', revenue: 99.99, region: 'SA', status: 'completed' }
+                { date: '2025-01-01', id: 'TXN-2025-001', product: 'Mobile Game License', customer: 'GameCorp Studios', revenue: 15000.00, region: 'NA', status: 'completed' },
+                { date: '2025-01-02', id: 'TXN-2025-002', product: 'Educational Software', customer: 'Learning Plus Inc', revenue: 8500.50, region: 'EU', status: 'completed' },
+                { date: '2025-01-03', id: 'TXN-2025-003', product: 'Digital Merchandise', customer: 'Direct Customer', revenue: 299.99, region: 'SA', status: 'completed' },
+                { date: '2025-01-04', id: 'TXN-2025-004', product: 'Subscription Service', customer: 'Premium User 001', revenue: 49.99, region: 'SA', status: 'completed' },
+                { date: '2025-01-05', id: 'TXN-2025-005', product: 'Game Development Tools', customer: 'Indie Developer Co', revenue: 2500.00, region: 'APAC', status: 'completed' },
+                { date: '2025-01-06', id: 'TXN-2025-006', product: 'Licensing Deal', customer: 'Education Ministry', revenue: 25000.00, region: 'EU', status: 'pending' },
+                { date: '2025-01-07', id: 'TXN-2025-007', product: 'Mobile App Revenue', customer: 'App Store', revenue: 1250.75, region: 'Global', status: 'completed' },
+                { date: '2025-01-08', id: 'TXN-2025-008', product: 'Training Package', customer: 'Corporate Client', revenue: 5500.00, region: 'NA', status: 'completed' },
+                { date: '2025-01-09', id: 'TXN-2025-009', product: 'Digital Content', customer: 'Content Platform', revenue: 750.25, region: 'APAC', status: 'completed' },
+                { date: '2025-01-10', id: 'TXN-2025-010', product: 'Software License', customer: 'Tech Startup', revenue: 3200.00, region: 'NA', status: 'completed' },
+                { date: '2025-01-11', id: 'TXN-2025-011', product: 'Subscription Service', customer: 'Premium User 002', revenue: 49.99, region: 'SA', status: 'completed' },
+                { date: '2025-01-12', id: 'TXN-2025-012', product: 'Game Revenue Share', customer: 'Gaming Platform', revenue: 4500.00, region: 'Global', status: 'completed' },
+                { date: '2025-01-13', id: 'TXN-2025-013', product: 'Consulting Services', customer: 'Fortune 500 Co', revenue: 12000.00, region: 'NA', status: 'completed' },
+                { date: '2025-01-14', id: 'TXN-2025-014', product: 'Digital Merchandise', customer: 'Online Store', revenue: 450.00, region: 'EU', status: 'completed' },
+                { date: '2025-01-15', id: 'TXN-2025-015', product: 'Educational License', customer: 'University System', revenue: 18000.00, region: 'EU', status: 'completed' },
+                { date: '2025-01-16', id: 'TXN-2025-016', product: 'Mobile Game Revenue', customer: 'Play Store', revenue: 2750.50, region: 'Global', status: 'completed' },
+                { date: '2025-01-17', id: 'TXN-2025-017', product: 'Software Support', customer: 'Enterprise Client', revenue: 6500.00, region: 'NA', status: 'completed' },
+                { date: '2025-01-18', id: 'TXN-2025-018', product: 'Subscription Service', customer: 'Premium User 003', revenue: 49.99, region: 'SA', status: 'completed' },
+                { date: '2025-01-19', id: 'TXN-2025-019', product: 'Licensing Deal', customer: 'Media Company', revenue: 22000.00, region: 'APAC', status: 'completed' },
+                { date: '2025-01-20', id: 'TXN-2025-020', product: 'Training Materials', customer: 'Education Provider', revenue: 3500.00, region: 'EU', status: 'completed' },
+                { date: '2025-01-21', id: 'TXN-2025-021', product: 'Game Development License', customer: 'AAA Studio', revenue: 35000.00, region: 'NA', status: 'completed' },
+                { date: '2025-01-22', id: 'TXN-2025-022', product: 'Digital Content', customer: 'Streaming Service', revenue: 8750.00, region: 'Global', status: 'completed' },
+                { date: '2025-01-23', id: 'TXN-2025-023', product: 'Software License', customer: 'Government Agency', revenue: 15500.00, region: 'SA', status: 'pending' },
+                { date: '2025-01-24', id: 'TXN-2025-024', product: 'Mobile App Revenue', customer: 'App Store', revenue: 1950.25, region: 'Global', status: 'completed' },
+                { date: '2025-01-25', id: 'TXN-2025-025', product: 'Subscription Service', customer: 'Premium User 004', revenue: 49.99, region: 'SA', status: 'completed' }
             ],
             monthlyTrend: [
-                { month: 'Oct', actual: 18500, forecast: 17000, target: 20000 },
-                { month: 'Nov', actual: 22300, forecast: 21000, target: 23000 },
-                { month: 'Dec', actual: 28700, forecast: 26500, target: 25000 },
-                { month: 'Jan', actual: 23475.24, forecast: 28000, target: 30000 }
+                { month: 'Oct', actual: 185000, forecast: 170000, target: 200000 },
+                { month: 'Nov', actual: 223000, forecast: 210000, target: 230000 },
+                { month: 'Dec', actual: 287000, forecast: 265000, target: 250000 },
+                { month: 'Jan', actual: 234750, forecast: 280000, target: 300000 }
             ]
         };
 
         let revenueChart, breakdownChart;
+        let uploadedData = null;
 
         // Initialize dashboard
         function initDashboard() {
@@ -677,6 +1693,7 @@
             createCharts();
             populateTransactionTable();
             setDefaultFilters();
+            setupDragAndDrop();
         }
 
         function updateKPIs() {
@@ -688,16 +1705,20 @@
             document.getElementById('totalRevenue').textContent = `$${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
             document.getElementById('recurringRevenue').textContent = `$${recurringRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
             document.getElementById('arpu').textContent = `$${avgRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-            document.getElementById('revenueForecast').textContent = `$${(28000).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            document.getElementById('revenueForecast').textContent = `${(280000).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
-            // Update change indicators
-            document.getElementById('revenueChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+15.2% vs last period</span>';
-            document.getElementById('mrrChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+8.7% vs last month</span>';
-            document.getElementById('arpuChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+12.1% vs last period</span>';
-            document.getElementById('forecastVariance').innerHTML = '<span class="kpi-change-arrow">↘</span><span>-6.7% vs target</span>';
+            // Update change indicators with new data
+            document.getElementById('revenueChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+34.8% vs last period</span>';
+            document.getElementById('mrrChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+167% vs last month</span>';
+            document.getElementById('arpuChange').innerHTML = '<span class="kpi-change-arrow">↗</span><span>+28.3% vs last period</span>';
+            document.getElementById('forecastVariance').innerHTML = '<span class="kpi-change-arrow">↘</span><span>-21.8% vs target</span>';
         }
 
         function createCharts() {
+            // Destroy existing charts if they exist
+            if (revenueChart) revenueChart.destroy();
+            if (breakdownChart) breakdownChart.destroy();
+
             // Revenue Trend Chart
             const ctx1 = document.getElementById('revenueChart').getContext('2d');
             revenueChart = new Chart(ctx1, {
@@ -821,6 +1842,511 @@
             document.getElementById('currencyFilter').value = 'USD';
         }
 
+        // Settings functionality
+        let dashboardSettings = {
+            general: {
+                defaultCurrency: 'ZAR',
+                timezone: 'Africa/Johannesburg',
+                dateFormat: 'DD/MM/YYYY',
+                autoRefresh: true,
+                realTimeUpdates: false,
+                compactView: false
+            },
+            data: {
+                autoFieldMapping: true,
+                dataValidation: true,
+                backupData: true
+            },
+            display: {
+                themeMode: 'light',
+                primaryColor: '#0070f3',
+                chartAnimations: true,
+                defaultChartType: 'line',
+                showDataLabels: false,
+                exportFormat: 'png'
+            },
+            notifications: {
+                revenueAlerts: true,
+                highRevenueThreshold: 10000,
+                importNotifications: true,
+                maintenanceAlerts: true,
+                emailAddress: 'user@zainlitha.com',
+                dailyReport: false,
+                weeklyReport: true
+            },
+            security: {
+                twoFactorAuth: true,
+                sessionTimeout: 60,
+                exportRestrictions: false,
+                anonymousAnalytics: true,
+                dataRetention: 24,
+                auditLogging: true
+            }
+        };
+
+        function openSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'block';
+            loadSettingsValues();
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function switchSettingsTab(tabName) {
+            // Remove active class from all tabs and sections
+            document.querySelectorAll('.settings-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.settings-section').forEach(section => section.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding section
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Settings').classList.add('active');
+        }
+
+        function toggleSetting(toggleElement, settingKey) {
+            toggleElement.classList.toggle('active');
+            const isActive = toggleElement.classList.contains('active');
+            
+            // Update the setting in memory
+            const section = findSettingSection(settingKey);
+            if (section) {
+                dashboardSettings[section][settingKey] = isActive;
+            }
+            
+            // Apply immediate effects for certain settings
+            applySettingChange(settingKey, isActive);
+        }
+
+        function findSettingSection(settingKey) {
+            for (const [sectionName, settings] of Object.entries(dashboardSettings)) {
+                if (settings.hasOwnProperty(settingKey)) {
+                    return sectionName;
+                }
+            }
+            return null;
+        }
+
+        function applySettingChange(settingKey, value) {
+            switch(settingKey) {
+                case 'compactView':
+                    document.body.classList.toggle('compact-view', value);
+                    break;
+                case 'chartAnimations':
+                    // Would update chart animation settings
+                    console.log('Chart animations:', value ? 'enabled' : 'disabled');
+                    break;
+                case 'autoRefresh':
+                    console.log('Auto-refresh:', value ? 'enabled' : 'disabled');
+                    break;
+                case 'realTimeUpdates':
+                    console.log('Real-time updates:', value ? 'enabled' : 'disabled');
+                    break;
+            }
+        }
+
+        function loadSettingsValues() {
+            // Load current settings into the form
+            document.getElementById('defaultCurrency').value = dashboardSettings.general.defaultCurrency;
+            document.getElementById('timezone').value = dashboardSettings.general.timezone;
+            document.getElementById('dateFormat').value = dashboardSettings.general.dateFormat;
+            document.getElementById('themeMode').value = dashboardSettings.display.themeMode;
+            document.getElementById('primaryColor').value = dashboardSettings.display.primaryColor;
+            document.getElementById('defaultChartType').value = dashboardSettings.display.defaultChartType;
+            document.getElementById('exportFormat').value = dashboardSettings.display.exportFormat;
+            document.getElementById('highRevenueThreshold').value = dashboardSettings.notifications.highRevenueThreshold;
+            document.getElementById('emailAddress').value = dashboardSettings.notifications.emailAddress;
+            document.getElementById('sessionTimeout').value = dashboardSettings.security.sessionTimeout;
+            document.getElementById('dataRetention').value = dashboardSettings.security.dataRetention;
+
+            // Update toggles
+            updateToggleStates();
+        }
+
+        function updateToggleStates() {
+            const toggleSettings = {
+                'autoRefresh': dashboardSettings.general.autoRefresh,
+                'realTimeUpdates': dashboardSettings.general.realTimeUpdates,
+                'compactView': dashboardSettings.general.compactView,
+                'autoFieldMapping': dashboardSettings.data.autoFieldMapping,
+                'dataValidation': dashboardSettings.data.dataValidation,
+                'backupData': dashboardSettings.data.backupData,
+                'chartAnimations': dashboardSettings.display.chartAnimations,
+                'showDataLabels': dashboardSettings.display.showDataLabels,
+                'revenueAlerts': dashboardSettings.notifications.revenueAlerts,
+                'importNotifications': dashboardSettings.notifications.importNotifications,
+                'maintenanceAlerts': dashboardSettings.notifications.maintenanceAlerts,
+                'dailyReport': dashboardSettings.notifications.dailyReport,
+                'weeklyReport': dashboardSettings.notifications.weeklyReport,
+                'twoFactorAuth': dashboardSettings.security.twoFactorAuth,
+                'exportRestrictions': dashboardSettings.security.exportRestrictions,
+                'anonymousAnalytics': dashboardSettings.security.anonymousAnalytics,
+                'auditLogging': dashboardSettings.security.auditLogging
+            };
+
+            // Find all toggle elements and set their state
+            document.querySelectorAll('.settings-toggle').forEach(toggle => {
+                const settingKey = toggle.getAttribute('onclick').match(/'([^']+)'/)[1];
+                if (toggleSettings.hasOwnProperty(settingKey)) {
+                    toggle.classList.toggle('active', toggleSettings[settingKey]);
+                }
+            });
+        }
+
+        function saveSettings() {
+            // Collect all form values
+            dashboardSettings.general.defaultCurrency = document.getElementById('defaultCurrency').value;
+            dashboardSettings.general.timezone = document.getElementById('timezone').value;
+            dashboardSettings.general.dateFormat = document.getElementById('dateFormat').value;
+            dashboardSettings.display.themeMode = document.getElementById('themeMode').value;
+            dashboardSettings.display.primaryColor = document.getElementById('primaryColor').value;
+            dashboardSettings.display.defaultChartType = document.getElementById('defaultChartType').value;
+            dashboardSettings.display.exportFormat = document.getElementById('exportFormat').value;
+            dashboardSettings.notifications.highRevenueThreshold = parseInt(document.getElementById('highRevenueThreshold').value);
+            dashboardSettings.notifications.emailAddress = document.getElementById('emailAddress').value;
+            dashboardSettings.security.sessionTimeout = parseInt(document.getElementById('sessionTimeout').value);
+            dashboardSettings.security.dataRetention = parseInt(document.getElementById('dataRetention').value);
+
+            // Apply theme changes
+            applyThemeSettings();
+            
+            // Show success message
+            alert('Settings saved successfully!');
+            
+            // Update currency filter in main dashboard
+            updateCurrencyFilter();
+            
+            closeSettingsModal();
+        }
+
+        function applyThemeSettings() {
+            const primaryColor = dashboardSettings.display.primaryColor;
+            const themeMode = dashboardSettings.display.themeMode;
+            
+            // Update CSS custom properties for primary color
+            document.documentElement.style.setProperty('--primary-color', primaryColor);
+            
+            // Apply theme mode
+            if (themeMode === 'dark') {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
+        }
+
+        function updateCurrencyFilter() {
+            const currencyFilter = document.getElementById('currencyFilter');
+            currencyFilter.value = dashboardSettings.general.defaultCurrency;
+            
+            // Update currency display in KPIs
+            updateKPIs();
+        }
+
+        function resetAllSettings() {
+            if (confirm('Are you sure you want to reset all settings to their default values? This action cannot be undone.')) {
+                // Reset to default values
+                dashboardSettings = {
+                    general: {
+                        defaultCurrency: 'USD',
+                        timezone: 'UTC',
+                        dateFormat: 'MM/DD/YYYY',
+                        autoRefresh: true,
+                        realTimeUpdates: false,
+                        compactView: false
+                    },
+                    data: {
+                        autoFieldMapping: true,
+                        dataValidation: true,
+                        backupData: true
+                    },
+                    display: {
+                        themeMode: 'light',
+                        primaryColor: '#0070f3',
+                        chartAnimations: true,
+                        defaultChartType: 'line',
+                        showDataLabels: false,
+                        exportFormat: 'png'
+                    },
+                    notifications: {
+                        revenueAlerts: true,
+                        highRevenueThreshold: 10000,
+                        importNotifications: true,
+                        maintenanceAlerts: true,
+                        emailAddress: 'user@example.com',
+                        dailyReport: false,
+                        weeklyReport: true
+                    },
+                    security: {
+                        twoFactorAuth: false,
+                        sessionTimeout: 60,
+                        exportRestrictions: false,
+                        anonymousAnalytics: true,
+                        dataRetention: 24,
+                        auditLogging: false
+                    }
+                };
+                
+                loadSettingsValues();
+                alert('Settings have been reset to default values.');
+            }
+        }
+
+        // Upload functionality
+        function openUploadModal() {
+            document.getElementById('uploadModal').style.display = 'block';
+            resetUploadModal();
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+            resetUploadModal();
+        }
+
+        function resetUploadModal() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadProgress').style.display = 'none';
+            document.getElementById('dataPreview').style.display = 'none';
+            document.getElementById('fieldMapping').style.display = 'none';
+            document.getElementById('uploadActions').style.display = 'none';
+            document.getElementById('progressFill').style.width = '0%';
+            uploadedData = null;
+        }
+
+        function setupDragAndDrop() {
+            const uploadArea = document.querySelector('.upload-area');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+            });
+
+            uploadArea.addEventListener('drop', handleDrop, false);
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                handleFileSelect({target: {files: files}});
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                alert('Please select a CSV file.');
+                return;
+            }
+
+            // Show progress
+            document.getElementById('uploadProgress').style.display = 'block';
+            animateProgress();
+
+            // Parse CSV
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    uploadedData = results;
+                    showDataPreview(results);
+                    setupFieldMapping(results.meta.fields);
+                    document.getElementById('uploadProgress').style.display = 'none';
+                    document.getElementById('dataPreview').style.display = 'block';
+                    document.getElementById('fieldMapping').style.display = 'block';
+                    document.getElementById('uploadActions').style.display = 'block';
+                },
+                error: function(error) {
+                    alert('Error parsing CSV: ' + error.message);
+                    document.getElementById('uploadProgress').style.display = 'none';
+                }
+            });
+        }
+
+        function animateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            let width = 0;
+            const interval = setInterval(() => {
+                width += 10;
+                progressFill.style.width = width + '%';
+                if (width >= 100) {
+                    clearInterval(interval);
+                }
+            }, 100);
+        }
+
+        function showDataPreview(results) {
+            const header = document.getElementById('previewHeader');
+            const body = document.getElementById('previewBody');
+            
+            header.innerHTML = '';
+            body.innerHTML = '';
+
+            // Create header
+            const headerRow = header.insertRow();
+            results.meta.fields.forEach(field => {
+                const th = document.createElement('th');
+                th.textContent = field;
+                headerRow.appendChild(th);
+            });
+
+            // Show first 5 rows
+            const previewData = results.data.slice(0, 5);
+            previewData.forEach(row => {
+                const tableRow = body.insertRow();
+                results.meta.fields.forEach(field => {
+                    const cell = tableRow.insertCell();
+                    cell.textContent = row[field] || '';
+                });
+            });
+        }
+
+        function setupFieldMapping(fields) {
+            const mappings = [
+                'dateMapping', 'idMapping', 'productMapping', 
+                'customerMapping', 'revenueMapping', 'regionMapping', 'statusMapping'
+            ];
+
+            mappings.forEach(mappingId => {
+                const select = document.getElementById(mappingId);
+                select.innerHTML = '<option value="">-- Select Column --</option>';
+                
+                fields.forEach(field => {
+                    const option = document.createElement('option');
+                    option.value = field;
+                    option.textContent = field;
+                    select.appendChild(option);
+                });
+
+                // Auto-map based on common field names
+                autoMapField(select, mappingId, fields);
+            });
+        }
+
+        function autoMapField(select, mappingId, fields) {
+            const autoMappings = {
+                'dateMapping': ['date', 'transaction_date', 'created_date', 'timestamp'],
+                'idMapping': ['id', 'transaction_id', 'txn_id', 'reference'],
+                'productMapping': ['product', 'product_name', 'item', 'service'],
+                'customerMapping': ['customer', 'customer_name', 'client', 'buyer'],
+                'revenueMapping': ['revenue', 'amount', 'value', 'price', 'total'],
+                'regionMapping': ['region', 'location', 'country', 'area'],
+                'statusMapping': ['status', 'state', 'condition']
+            };
+
+            const possibleFields = autoMappings[mappingId] || [];
+            
+            for (const field of fields) {
+                const fieldLower = field.toLowerCase();
+                for (const mapping of possibleFields) {
+                    if (fieldLower.includes(mapping)) {
+                        select.value = field;
+                        return;
+                    }
+                }
+            }
+        }
+
+        function processUploadedData() {
+            if (!uploadedData) {
+                alert('No data to process');
+                return;
+            }
+
+            // Get field mappings
+            const mappings = {
+                date: document.getElementById('dateMapping').value,
+                id: document.getElementById('idMapping').value,
+                product: document.getElementById('productMapping').value,
+                customer: document.getElementById('customerMapping').value,
+                revenue: document.getElementById('revenueMapping').value,
+                region: document.getElementById('regionMapping').value,
+                status: document.getElementById('statusMapping').value
+            };
+
+            // Validate required mappings
+            const requiredFields = ['date', 'revenue'];
+            for (const field of requiredFields) {
+                if (!mappings[field]) {
+                    alert(`Please map the ${field} field`);
+                    return;
+                }
+            }
+
+            // Transform data
+            const transformedTransactions = uploadedData.data.map((row, index) => {
+                return {
+                    date: row[mappings.date] || new Date().toISOString().split('T')[0],
+                    id: row[mappings.id] || `UPL-${String(index + 1).padStart(3, '0')}`,
+                    product: row[mappings.product] || 'Unknown Product',
+                    customer: row[mappings.customer] || 'Unknown Customer',
+                    revenue: parseFloat(row[mappings.revenue]) || 0,
+                    region: row[mappings.region] || 'Unknown',
+                    status: row[mappings.status] || 'completed'
+                };
+            }).filter(transaction => transaction.revenue > 0);
+
+            if (transformedTransactions.length === 0) {
+                alert('No valid transactions found in the uploaded data');
+                return;
+            }
+
+            // Replace current data
+            revenueData.transactions = transformedTransactions;
+
+            // Update monthly trend based on uploaded data
+            updateMonthlyTrendFromTransactions();
+
+            // Refresh dashboard
+            updateKPIs();
+            createCharts();
+            populateTransactionTable();
+
+            // Show success message
+            document.getElementById('successMessage').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('successMessage').style.display = 'none';
+            }, 5000);
+
+            closeUploadModal();
+        }
+
+        function updateMonthlyTrendFromTransactions() {
+            // Group transactions by month
+            const monthlyRevenue = {};
+            
+            revenueData.transactions.forEach(transaction => {
+                const date = new Date(transaction.date);
+                const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+                
+                if (!monthlyRevenue[monthKey]) {
+                    monthlyRevenue[monthKey] = 0;
+                }
+                monthlyRevenue[monthKey] += transaction.revenue;
+            });
+
+            // Update monthly trend
+            revenueData.monthlyTrend = Object.entries(monthlyRevenue).map(([month, actual]) => ({
+                month,
+                actual,
+                forecast: actual * 1.1, // Simple forecast
+                target: actual * 1.2 // Simple target
+            }));
+        }
+
         // Drill-down functionality
         function drillDown(type, data = null) {
             const modal = document.getElementById('drillModal');
@@ -830,18 +2356,19 @@
             switch(type) {
                 case 'revenue':
                     title.textContent = 'Total Revenue Analysis';
+                    const totalRev = revenueData.transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.revenue, 0);
                     content.innerHTML = `
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
                             <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #0070f3;">$23,475.24</div>
-                                <div style="color: #6c757d; font-size: 0.9rem;">This Month</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #0070f3;">$${totalRev.toLocaleString()}</div>
+                                <div style="color: #6c757d; font-size: 0.9rem;">Total Revenue</div>
                             </div>
                             <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">$69,500.00</div>
-                                <div style="color: #6c757d; font-size: 0.9rem;">Last 3 Months</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">${revenueData.transactions.length}</div>
+                                <div style="color: #6c757d; font-size: 0.9rem;">Total Transactions</div>
                             </div>
                         </div>
-                        <canvas id="drillRevenueChart" style="max-height: 300px;"></canvas>
+                        <p>This analysis is based on ${revenueData.transactions.length} transactions in your dataset.</p>
                     `;
                     break;
                 case 'transaction':
@@ -927,11 +2454,20 @@
             // Filter data and update charts/tables
         });
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         window.addEventListener('click', function(e) {
-            const modal = document.getElementById('drillModal');
-            if (e.target === modal) {
+            const drillModal = document.getElementById('drillModal');
+            const uploadModal = document.getElementById('uploadModal');
+            const settingsModal = document.getElementById('settingsModal');
+            
+            if (e.target === drillModal) {
                 closeDrillModal();
+            }
+            if (e.target === uploadModal) {
+                closeUploadModal();
+            }
+            if (e.target === settingsModal) {
+                closeSettingsModal();
             }
         });
 
